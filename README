@@ -1,21 +1,24 @@
-                                        
+
                                     +-----+
                                      DELVE
                                     +-----+
-                                        
+
                                        by
                             Markus Amalthea Magnuson
                            markus.magnuson@gmail.com
-                                        
+
           Delve automatically searches the internet for computers that
                  share any drives via Apple File Sharing (AFP).
-                                        
+
  This simple application is a showcase of the unsecure terms under which people
 handle their private data. As you will notice you can sometimes access someone's
  entire harddrive directly over the internet. This is most often not intended.
-                                        
+
             Delve is licensed under GPLv3, for more information see:
                     http://www.gnu.org/licenses/gpl-3.0.html
+                     Source code for Delve is available at:
+                        http://code.google.com/p/delve/
+
       This software uses nmap, for more information see the COPYING file.
                      Source code for nmap is available at:
                                 http://nmap.org/
