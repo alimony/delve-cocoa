@@ -162,7 +162,9 @@
                 [scanText setStringValue:[NSString stringWithFormat:@"Scanning %@…", searchAddress]];
                 
                 // TODO: Look for SMB drives too (port 445) and add them as smb:// links.
-                NSString *command = [NSString stringWithFormat:@"%@/nmap -vv -p548 %@ | grep \"Discovered open port\" | cut -d \" \" -f 6 | xargs -I {} echo \"afp://{}\"", [[NSBundle mainBundle] resourcePath], searchAddress];
+                NSString *resourcePath = [[[NSBundle mainBundle] resourcePath] stringByReplacingOccurrencesOfString:@" "
+                                                                                                         withString:@"\\ "];
+                NSString *command = [NSString stringWithFormat:@"%@/nmap -vv -p548 %@ | grep \"Discovered open port\" | cut -d \" \" -f 6 | xargs -I {} echo \"afp://{}\"", resourcePath, searchAddress];
                 
                 task = [[[NSTask alloc] init] autorelease];
                 [task setLaunchPath:@"/bin/sh"];
