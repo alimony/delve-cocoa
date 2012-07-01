@@ -1,3 +1,4 @@
 [submodule "asi-http-request"]
 	path = asi-http-request
 	url = https://github.com/pokeb/asi-http-request.git
+	ignore = dirty
