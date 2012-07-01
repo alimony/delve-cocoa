@@ -1,7 +1,7 @@
 //
 // Delve
 //
-// © 2011 Markus Amalthea Magnuson <markus.magnuson@gmail.com>
+// © 2011–2012 Markus Amalthea Magnuson <markus.magnuson@gmail.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -19,25 +19,54 @@
 
 #import <Cocoa/Cocoa.h>
 
+@class ASIHTTPRequest;
+
 @interface DelveAppDelegate : NSObject
 {
     NSTask *task;
     NSString *publicAddress;
-    BOOL scanInProgress;
-    
-    IBOutlet NSWindow *mainWindow;
-    IBOutlet NSWindow *openingWindow;
-    IBOutlet NSProgressIndicator *openingIndicator;
+    BOOL scanIsInProgress;
+    NSArray *pathsBeingSent;
+    NSWindow *connectionOriginatingWindow;
+
     IBOutlet NSArrayController *arrayController;
+
+    // Main window.
+    IBOutlet NSWindow *mainWindow;
     IBOutlet NSTableView *tableView;
-    IBOutlet NSButton *scanButton;
     IBOutlet NSProgressIndicator *progressIndicator;
     IBOutlet NSTextField *scanText;
+    IBOutlet NSButton *scanButton;
+
+    // Preferences window.
+    IBOutlet NSWindow *preferencesWindow;
+    IBOutlet NSTextField *serverField;
+    IBOutlet NSProgressIndicator *serverTestingIndicator;
+    IBOutlet NSImageView *serverStatusImage;
+    IBOutlet NSTextField *serverStatusText;
+    IBOutlet NSButton *serverTestButton;
+
+    // Opening window.
+    IBOutlet NSWindow *openingWindow;
+    IBOutlet NSProgressIndicator *openingIndicator;
+
+    // Login window.
+    IBOutlet NSWindow *loginWindow;
+    IBOutlet NSTextField *host;
+	IBOutlet NSTextField *realm;
+	IBOutlet NSTextField *username;
+	IBOutlet NSTextField *password;
 }
 
 - (IBAction)startScan:(id)sender;
 - (IBAction)stopScan:(id)sender;
 - (NSArray *)addressRangeForPart:(NSNumber *)number;
 - (void)scanAddresses;
+- (void)sendPathsToServer:(NSArray *)paths;
+- (void)sendPathsToServerDidFinish:(ASIHTTPRequest *)request;
+- (void)sendPathsToServerDidFail:(ASIHTTPRequest *)request;
+- (IBAction)dismissAuthSheet:(id)sender;
+- (IBAction)showPreferences:(id)sender;
+- (IBAction)testServer:(id)sender;
 
 @end

@@ -17,7 +17,7 @@ handle their private data. As you will notice you can sometimes access someone's
             Delve is licensed under GPLv3, for more information see:
                     http://www.gnu.org/licenses/gpl-3.0.html
                      Source code for Delve is available at:
-                        http://code.google.com/p/delve/
+                     https://github.com/alimony/delve-cocoa
 
       This software uses nmap, for more information see the COPYING file.
                      Source code for nmap is available at:

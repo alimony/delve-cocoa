@@ -1,7 +1,7 @@
 //
 // Delve
 //
-// © 2011 Markus Amalthea Magnuson <markus.magnuson@gmail.com>
+// © 2011–2012 Markus Amalthea Magnuson <markus.magnuson@gmail.com>
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,8 +18,18 @@
 //
 
 #import "DelveAppDelegate.h"
+#import "ASIFormDataRequest.h"
 
 @implementation DelveAppDelegate
+
++ (void)initialize
+{
+    NSDictionary *defaults = [NSDictionary dictionaryWithObjectsAndKeys:
+                              @"", DelvePreferencesKeyServer,
+                              [NSNumber numberWithBool:NO], DelvePreferencesKeyShouldSendPathsToServer,
+                              nil];
+    [[NSUserDefaults standardUserDefaults] registerDefaults:defaults];
+}
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Display a sheet dialog while getting our public address.
@@ -52,15 +62,22 @@
         publicAddress = result;
         [publicAddress retain];
     }
-    
+
     [scanText setStringValue:[NSString stringWithFormat:@"Scan will start at %@", publicAddress]];
     [openingIndicator stopAnimation:self];
-    
+
     [NSApp endSheet:openingWindow];
     [openingWindow orderOut:self];
 
     [tableView setTarget:self];
     [tableView setDoubleAction:@selector(didDoubleClickRow:)];
+
+    if ([[NSUserDefaults standardUserDefaults] boolForKey:DelvePreferencesKeyShouldSendPathsToServer]) {
+        [serverStatusImage setImage:[NSImage imageNamed:@"GreenDot"]];
+        [serverStatusImage setHidden:NO];
+        [serverStatusText setStringValue:@"Server OK"];
+        [serverStatusText setHidden: NO];
+    }
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication
@@ -70,22 +87,27 @@
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification
 {
-    if (scanInProgress) {
+    if (scanIsInProgress) {
         [self stopScan:self];
     }
 }
 
+- (IBAction)showPreferences:(id)sender
+{
+    [preferencesWindow makeKeyAndOrderFront:self];
+}
+
 - (IBAction)startScan:(id)sender
 {
-    scanInProgress = YES;
+    scanIsInProgress = YES;
 
     // Always start from an empty array of found paths.
     [arrayController removeObjects:[arrayController arrangedObjects]];
-    
+
     [progressIndicator startAnimation:self];
     [scanButton setTitle:@"Stop Scan"];
     [scanButton setAction:@selector(stopScan:)];
-    
+
     [NSThread detachNewThreadSelector:@selector(scanAddresses) toTarget:self withObject:nil];
 }
 
@@ -95,8 +117,8 @@
         [task terminate];
     }
 
-    scanInProgress = NO;
-    
+    scanIsInProgress = NO;
+
     [progressIndicator stopAnimation:self];
     [scanText setStringValue:@"Stopped scanning."];
     [scanButton setTitle:@"Start Scan"];
@@ -112,7 +134,7 @@
 - (NSArray *)addressRangeForPart:(NSNumber *)number
 {
     int part = [number intValue];
-    
+
     NSMutableArray *upperNumbers = [NSMutableArray array];
     for (int i = part; i < 256; i++) {
         [upperNumbers addObject:[NSNumber numberWithInt:i]];
@@ -121,7 +143,7 @@
     for (int i = part - 1; i >= 0; i--) {
         [lowerNumbers addObject:[NSNumber numberWithInt:i]];
     }
-    
+
     NSMutableArray *numbers = [NSMutableArray array];
     while ([upperNumbers count] > 0 || [lowerNumbers count] > 0) {
         if ([upperNumbers count] > 0) {
@@ -133,65 +155,203 @@
             [lowerNumbers removeObjectAtIndex:0];
         }
     }
-    
+
     return [NSArray arrayWithArray:numbers];
 }
 
 - (void)scanAddresses
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
-    
+
     NSArray *publicAddressParts = [publicAddress componentsSeparatedByString:@"."];
     NSArray *partOne = [self addressRangeForPart:[publicAddressParts objectAtIndex:0]];
     NSArray *partTwo = [self addressRangeForPart:[publicAddressParts objectAtIndex:1]];
     NSArray *partThree = [self addressRangeForPart:[publicAddressParts objectAtIndex:2]];
-    
+
     for (NSNumber *partOneNumber in partOne) {
-        if (!scanInProgress) {
+        if (!scanIsInProgress) {
             break;
         }
         for (NSNumber *partTwoNumber in partTwo) {
-            if (!scanInProgress) {
+            if (!scanIsInProgress) {
                 break;
             }
             for (NSNumber *partThreeNumber in partThree) {
-                if (!scanInProgress) {
+                if (!scanIsInProgress) {
                     break;
                 }
                 NSString *searchAddress = [NSString stringWithFormat:@"%@.%@.%@.0-255", partOneNumber, partTwoNumber, partThreeNumber];
                 [scanText setStringValue:[NSString stringWithFormat:@"Scanning %@…", searchAddress]];
-                
+
                 // TODO: Look for SMB drives too (port 445) and add them as smb:// links.
                 NSString *resourcePath = [[[NSBundle mainBundle] resourcePath] stringByReplacingOccurrencesOfString:@" "
                                                                                                          withString:@"\\ "];
                 NSString *command = [NSString stringWithFormat:@"%@/nmap -vv -p548 %@ | grep \"Discovered open port\" | cut -d \" \" -f 6 | xargs -I {} echo \"afp://{}\"", resourcePath, searchAddress];
-                
+
                 task = [[[NSTask alloc] init] autorelease];
                 [task setLaunchPath:@"/bin/sh"];
                 [task setArguments:[NSArray arrayWithObjects:@"-c", command, nil]];
-                
+
                 NSPipe *pipe  = [NSPipe pipe];
                 [task setStandardOutput:pipe];
                 NSFileHandle *file = [pipe fileHandleForReading];
-                
+
                 [task launch];
-                
+
                 NSData *data = [file readDataToEndOfFile];
                 NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
                 NSMutableArray *foundPaths = [NSMutableArray arrayWithArray:[string componentsSeparatedByString:@"\n"]];
                 [string release];
-                
+
                 [foundPaths removeObject:@""];
-                [arrayController addObjects:foundPaths];
-                
+
+                if ([foundPaths count] > 0) {
+                    // We found something, display it and optionally notice server.
+                    [arrayController addObjects:foundPaths];
+                    if ([[NSUserDefaults standardUserDefaults] boolForKey:DelvePreferencesKeyShouldSendPathsToServer]) {
+                        [self sendPathsToServer:foundPaths];
+                    }
+                }
+
                 [task waitUntilExit];
             }
         }
     }
-    
+
     [self stopScan:self];
-    
+
     [pool release];
+}
+
+#pragma mark -
+#pragma mark Sending found paths to server
+
+- (void)sendPathsToServer:(NSArray *)paths
+{
+    pathsBeingSent = paths;
+    NSURL *url = [NSURL URLWithString:[[NSUserDefaults standardUserDefaults] stringForKey:DelvePreferencesKeyServer]];
+    ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
+    [request setUseKeychainPersistence:YES];
+
+    // Add the POST data.
+    for (NSString *path in paths) {
+        [request addPostValue:path forKey:@"path"];
+    }
+
+    // Handle responses.
+    [request setDelegate:self];
+	[request setDidFinishSelector:@selector(sendPathsToServerDidFinish:)];
+    [request setDidFailSelector:@selector(sendPathsToServerDidFail:)];
+
+    connectionOriginatingWindow = mainWindow;
+	[request startAsynchronous];
+}
+
+- (void)sendPathsToServerDidFinish:(ASIFormDataRequest *)request
+{
+    // TODO: We can probably do away with the pathsBeingSent variable by
+    // getting the sent paths from the request's POST data instead.
+    for (NSString *path in pathsBeingSent) {
+        NSLog(@"Successfully sent %@ to server.", path);
+    }
+    pathsBeingSent = nil;
+}
+
+- (void)sendPathsToServerDidFail:(ASIFormDataRequest *)request
+{
+	NSLog(@"%@", [request error]);
+}
+
+#pragma mark -
+#pragma mark Testing the server connection
+
+// Delegate method for listening to changes of the server address.
+- (void)controlTextDidChange:(NSNotification *)aNotification
+{
+    [[NSUserDefaults standardUserDefaults] setBool:NO forKey:DelvePreferencesKeyShouldSendPathsToServer];
+    BOOL serverFieldIsEmpty = [[serverField stringValue] isEqualToString:@""];
+    [serverStatusImage setImage:[NSImage imageNamed:@"YellowDot"]];
+    [serverStatusImage setHidden:serverFieldIsEmpty];
+    [serverStatusText setStringValue:@"Server not tested"];
+    [serverStatusText setHidden:serverFieldIsEmpty];
+    [serverTestButton setEnabled:!serverFieldIsEmpty];
+}
+
+- (IBAction)testServer:(id)sender
+{
+    [serverStatusImage setHidden:YES];
+    [serverStatusText setStringValue:@"Testing server…"];
+    [serverStatusText setHidden:NO];
+    [serverTestingIndicator startAnimation:self];
+
+    NSURL *url = [NSURL URLWithString:[serverField stringValue]];
+    ASIHTTPRequest *request = [ASIFormDataRequest requestWithURL:url];
+    [request setUseKeychainPersistence:YES];
+
+    [request setDelegate:self];
+	[request setDidFinishSelector:@selector(serverTestDidFinish:)];
+    [request setDidFailSelector:@selector(serverTestDidFail:)];
+
+    connectionOriginatingWindow = preferencesWindow;
+	[request startAsynchronous];
+}
+
+- (void)serverTestDidFinish:(ASIHTTPRequest *)request
+{
+    [serverStatusImage setImage:[NSImage imageNamed:@"GreenDot"]];
+    [serverStatusImage setHidden:NO];
+    [serverStatusText setStringValue:@"Server OK"];
+    [serverTestingIndicator stopAnimation:self];
+    [[NSUserDefaults standardUserDefaults] setBool:YES forKey:DelvePreferencesKeyShouldSendPathsToServer];
+}
+
+- (void)serverTestDidFail:(ASIHTTPRequest *)request
+{
+	NSLog(@"%@", [request error]);
+    [serverStatusImage setImage:[NSImage imageNamed:@"RedDot"]];
+    [serverStatusImage setHidden:NO];
+    [serverStatusText setStringValue:@"Couldn't connect to server"];
+    [serverTestingIndicator stopAnimation:self];
+}
+
+#pragma mark -
+#pragma mark Server authentication
+
+// Delegate method to let the user authenticate. This is used both when sending
+// paths and when testing the server connection.
+- (void)authenticationNeededForRequest:(ASIHTTPRequest *)request
+{
+    [realm setStringValue:[request authenticationRealm]];
+	[host setStringValue:[[request url] host]];
+
+    [connectionOriginatingWindow makeKeyAndOrderFront:self];
+	[NSApp beginSheet:loginWindow
+       modalForWindow:connectionOriginatingWindow
+		modalDelegate:self
+       didEndSelector:@selector(authSheetDidEnd:returnCode:contextInfo:)
+          contextInfo:request];
+}
+
+- (IBAction)dismissAuthSheet:(id)sender
+{
+    [NSApp endSheet:loginWindow returnCode:[(NSControl *)sender tag]];
+}
+
+- (void)authSheetDidEnd:(NSWindow *)sheet returnCode:(int)returnCode contextInfo:(void *)contextInfo
+{
+	ASIHTTPRequest *request = (ASIHTTPRequest *)contextInfo;
+
+    if (returnCode == NSOKButton) {
+        [request setUsername:[[[username stringValue] copy] autorelease]];
+        [request setPassword:[[[password stringValue] copy] autorelease]];
+		[request retryUsingSuppliedCredentials];
+    }
+    else {
+		[request cancelAuthentication];
+	}
+
+    [loginWindow orderOut:self];
+    connectionOriginatingWindow = nil;
 }
 
 @end

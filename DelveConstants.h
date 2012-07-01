@@ -17,9 +17,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-#import <Cocoa/Cocoa.h>
-
-int main(int argc, char *argv[])
-{
-    return NSApplicationMain(argc,  (const char **) argv);
-}
+// We use NSString constants for preferences keys, to avoid mistakes.
+FOUNDATION_EXPORT NSString *const DelvePreferencesKeyServer;
+FOUNDATION_EXPORT NSString *const DelvePreferencesKeyShouldSendPathsToServer;

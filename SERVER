@@ -1,0 +1,10 @@
+Delve can post its findings to a server automatically. To use this feature, open
+Preferences, enter a server address, and click Test. If any authentication is
+needed for the given server, you will be asked for credentials which will then
+be saved in the system keychain. If the server passes the test (i.e. the little
+light turns green and says “Server OK”) all paths Delve finds will be posted
+there in real-time.
+
+Paths will be posted to the server using POST requests, containing an arbitrary
+number of fields called “path”. To properly handle incoming data from Delve,
+your server should listen for such requests and loop through all their fields. 
