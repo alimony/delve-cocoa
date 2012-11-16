@@ -26,7 +26,7 @@
     NSTask *task;
     NSString *publicAddress;
     BOOL scanIsInProgress;
-    NSArray *pathsBeingSent;
+    NSString *pathBeingSent;
     NSWindow *connectionOriginatingWindow;
 
     IBOutlet NSArrayController *arrayController;
@@ -62,9 +62,9 @@
 - (IBAction)stopScan:(id)sender;
 - (NSArray *)addressRangeForPart:(NSNumber *)number;
 - (void)scanAddresses;
-- (void)sendPathsToServer:(NSArray *)paths;
-- (void)sendPathsToServerDidFinish:(ASIHTTPRequest *)request;
-- (void)sendPathsToServerDidFail:(ASIHTTPRequest *)request;
+- (void)sendPathToServer:(NSString *)path;
+- (void)sendPathToServerDidFinish:(ASIHTTPRequest *)request;
+- (void)sendPathToServerDidFail:(ASIHTTPRequest *)request;
 - (IBAction)dismissAuthSheet:(id)sender;
 - (IBAction)showPreferences:(id)sender;
 - (IBAction)testServer:(id)sender;

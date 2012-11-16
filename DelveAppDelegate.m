@@ -183,11 +183,18 @@
                 NSString *searchAddress = [NSString stringWithFormat:@"%@.%@.%@.0-255", partOneNumber, partTwoNumber, partThreeNumber];
                 [scanText setStringValue:[NSString stringWithFormat:@"Scanning %@…", searchAddress]];
 
-                // TODO: Look for SMB drives too (port 445) and add them as smb:// links.
                 NSString *resourcePath = [[[NSBundle mainBundle] resourcePath] stringByReplacingOccurrencesOfString:@" "
                                                                                                          withString:@"\\ "];
-                NSString *command = [NSString stringWithFormat:@"%@/nmap -vv -p548 %@ | grep \"Discovered open port\" | cut -d \" \" -f 6 | xargs -I {} echo \"afp://{}\"", resourcePath, searchAddress];
-
+                NSString *command = [NSString stringWithFormat:@"%@/nmap -vv -p548,139,445 %@ "
+                                                                "| grep \"Discovered open port\" "
+                                                                "| sed 's/\\/tcp//g' "
+                                                                "| awk '{ "
+                                                                    "if ($4 == 139 || $4 == 445) "
+                                                                        "protocol = \"smb\"; "
+                                                                    "else if ($4 == 548) "
+                                                                        "protocol = \"afp\"; "
+                                                                    "print protocol\"://\"$6 "
+                                                                  "}'", resourcePath, searchAddress];
                 task = [[[NSTask alloc] init] autorelease];
                 [task setLaunchPath:@"/bin/sh"];
                 [task setArguments:[NSArray arrayWithObjects:@"-c", command, nil]];
@@ -203,13 +210,17 @@
                 NSMutableArray *foundPaths = [NSMutableArray arrayWithArray:[string componentsSeparatedByString:@"\n"]];
                 [string release];
 
+                // Remove empty and duplicate paths.
                 [foundPaths removeObject:@""];
+                NSArray *uniqueFoundPaths = [[NSSet setWithArray:foundPaths] allObjects];
 
-                if ([foundPaths count] > 0) {
-                    // We found something, display it and optionally notice server.
-                    [arrayController addObjects:foundPaths];
-                    if ([[NSUserDefaults standardUserDefaults] boolForKey:DelvePreferencesKeyShouldSendPathsToServer]) {
-                        [self sendPathsToServer:foundPaths];
+                for (NSString *path in uniqueFoundPaths) {
+                    if (![[arrayController arrangedObjects] containsObject:path]) {
+                        // We found something new, display it and optionally notice server.
+                        [arrayController addObject:path];
+                        if ([[NSUserDefaults standardUserDefaults] boolForKey:DelvePreferencesKeyShouldSendPathsToServer]) {
+                            [self sendPathToServer:path];
+                        }
                     }
                 }
 
@@ -226,38 +237,34 @@
 #pragma mark -
 #pragma mark Sending found paths to server
 
-- (void)sendPathsToServer:(NSArray *)paths
+- (void)sendPathToServer:(NSString *)path
 {
-    pathsBeingSent = paths;
+    pathBeingSent = path;
     NSURL *url = [NSURL URLWithString:[[NSUserDefaults standardUserDefaults] stringForKey:DelvePreferencesKeyServer]];
     ASIFormDataRequest *request = [ASIFormDataRequest requestWithURL:url];
     [request setUseKeychainPersistence:YES];
 
     // Add the POST data.
-    for (NSString *path in paths) {
-        [request addPostValue:path forKey:@"path"];
-    }
+    [request addPostValue:path forKey:@"path"];
 
     // Handle responses.
     [request setDelegate:self];
-	[request setDidFinishSelector:@selector(sendPathsToServerDidFinish:)];
-    [request setDidFailSelector:@selector(sendPathsToServerDidFail:)];
+	[request setDidFinishSelector:@selector(sendPathToServerDidFinish:)];
+    [request setDidFailSelector:@selector(sendPathToServerDidFail:)];
 
     connectionOriginatingWindow = mainWindow;
 	[request startAsynchronous];
 }
 
-- (void)sendPathsToServerDidFinish:(ASIFormDataRequest *)request
+- (void)sendPathToServerDidFinish:(ASIFormDataRequest *)request
 {
     // TODO: We can probably do away with the pathsBeingSent variable by
     // getting the sent paths from the request's POST data instead.
-    for (NSString *path in pathsBeingSent) {
-        NSLog(@"Successfully sent %@ to server.", path);
-    }
-    pathsBeingSent = nil;
+    NSLog(@"Successfully sent %@ to server.", pathBeingSent);
+    pathBeingSent = nil;
 }
 
-- (void)sendPathsToServerDidFail:(ASIFormDataRequest *)request
+- (void)sendPathToServerDidFail:(ASIFormDataRequest *)request
 {
 	NSLog(@"%@", [request error]);
 }
