@@ -1,1 +1,5 @@
 asi-http-request
+build
+Delve.xcodeproj/*.pbxuser
+Delve.xcodeproj/*.perspectivev3
+.DS_Store
