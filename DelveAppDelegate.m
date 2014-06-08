@@ -41,7 +41,7 @@
           contextInfo:nil];
 
     NSError *error = nil;
-    NSString *result = [NSString stringWithContentsOfURL:[NSURL URLWithString:@"http://api.externalip.net/ip/"]
+    NSString *result = [NSString stringWithContentsOfURL:[NSURL URLWithString:@"http://icanhazip.com/"]
                                                 encoding:NSUTF8StringEncoding
                                                    error:&error];
     // TODO: Regex the result to see if we actually got an IP address.
