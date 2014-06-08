@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>448A3A26-225B-4485-A512-CACB945E70D3</string>
+	<key>IDESourceControlProjectName</key>
+	<string>Delve</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>30CCEADD-6831-41B1-90C7-2DBAF3F6AE49</key>
+		<string>https://github.com/pokeb/asi-http-request.git</string>
+		<key>3DA68D2F-954C-4599-A44F-01F9A6768405</key>
+		<string>ssh://github.com/alimony/delve-cocoa.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>Delve.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>30CCEADD-6831-41B1-90C7-2DBAF3F6AE49</key>
+		<string>../../asi-http-request</string>
+		<key>3DA68D2F-954C-4599-A44F-01F9A6768405</key>
+		<string>../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>ssh://github.com/alimony/delve-cocoa.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>3DA68D2F-954C-4599-A44F-01F9A6768405</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>30CCEADD-6831-41B1-90C7-2DBAF3F6AE49</string>
+			<key>IDESourceControlWCCName</key>
+			<string>asi-http-request</string>
+		</dict>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>3DA68D2F-954C-4599-A44F-01F9A6768405</string>
+			<key>IDESourceControlWCCName</key>
+			<string>delve-cocoa</string>
+		</dict>
+	</array>
+</dict>
+</plist>
