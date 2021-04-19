@@ -34,14 +34,11 @@
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Display a sheet dialog while getting our public address.
     [openingIndicator startAnimation:self];
-    [NSApp beginSheet:openingWindow
-       modalForWindow:mainWindow
-        modalDelegate:self
-       didEndSelector:nil
-          contextInfo:nil];
+    [mainWindow beginSheet:openingWindow
+         completionHandler:nil];
 
     NSError *error = nil;
-    NSString *result = [NSString stringWithContentsOfURL:[NSURL URLWithString:@"http://icanhazip.com/"]
+    NSString *result = [NSString stringWithContentsOfURL:[NSURL URLWithString:@"https://icanhazip.com/"]
                                                 encoding:NSUTF8StringEncoding
                                                    error:&error];
     // TODO: Regex the result to see if we actually got an IP address.
@@ -50,11 +47,11 @@
         // We couldn't determine the public address, so quit.
         // TODO: Do something more graceful than quitting.
         NSRunCriticalAlertPanel(@"Couldn't get public address",
-                                @"Your public address could not be determined.",
-                                @"Quit",
-                                nil,
-                                nil);
-        [NSApp endSheet:openingWindow];
+                                 @"Your public address could not be determined.",
+                                 @"Quit",
+                                 nil,
+                                 nil);
+        [mainWindow endSheet:openingWindow];
         [openingWindow orderOut:self];
         [NSApp terminate:nil];
     }
@@ -66,7 +63,7 @@
     [scanText setStringValue:[NSString stringWithFormat:@"Scan will start at %@", publicAddress]];
     [openingIndicator stopAnimation:self];
 
-    [NSApp endSheet:openingWindow];
+    [mainWindow endSheet:openingWindow];
     [openingWindow orderOut:self];
 
     [tableView setTarget:self];
@@ -118,11 +115,13 @@
     }
 
     scanIsInProgress = NO;
-
-    [progressIndicator stopAnimation:self];
-    [scanText setStringValue:@"Stopped scanning."];
-    [scanButton setTitle:@"Start Scan"];
-    [scanButton setAction:@selector(startScan:)];
+    
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [progressIndicator stopAnimation:self];
+        [scanText setStringValue:@"Stopped scanning."];
+        [scanButton setTitle:@"Start Scan"];
+        [scanButton setAction:@selector(startScan:)];
+    });
 }
 
 - (void)didDoubleClickRow:(id)sender
@@ -181,7 +180,9 @@
                     break;
                 }
                 NSString *searchAddress = [NSString stringWithFormat:@"%@.%@.%@.0-255", partOneNumber, partTwoNumber, partThreeNumber];
-                [scanText setStringValue:[NSString stringWithFormat:@"Scanning %@…", searchAddress]];
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [scanText setStringValue:[NSString stringWithFormat:@"Scanning %@…", searchAddress]];
+                });
 
                 NSString *resourcePath = [[[NSBundle mainBundle] resourcePath] stringByReplacingOccurrencesOfString:@" "
                                                                                                          withString:@"\\ "];
@@ -348,7 +349,7 @@
 {
 	ASIHTTPRequest *request = (ASIHTTPRequest *)contextInfo;
 
-    if (returnCode == NSOKButton) {
+    if (returnCode == NSAlertFirstButtonReturn) {
         [request setUsername:[[[username stringValue] copy] autorelease]];
         [request setPassword:[[[password stringValue] copy] autorelease]];
 		[request retryUsingSuppliedCredentials];
